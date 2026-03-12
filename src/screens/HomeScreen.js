@@ -19,7 +19,7 @@ const HomeScreen = ({ navigation }) => {
   const [handbags, setHandbags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState('All');
+  const [selectedBrand, setSelectedBrand] = useState('Tất Cả');
   const [favorites, setFavorites] = useState([]);
 
   const loadData = async () => {
@@ -68,7 +68,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const filteredHandbags =
-    selectedBrand === 'All'
+    selectedBrand === 'Tất Cả'
       ? handbags
       : handbags.filter((h) => h.brand === selectedBrand);
 
@@ -76,7 +76,7 @@ const HomeScreen = ({ navigation }) => {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#8B4513" />
-        <Text style={styles.loadingText}>Loading handbags...</Text>
+        <Text style={styles.loadingText}>Đang tải sản phẩm...</Text>
       </View>
     );
   }
@@ -99,7 +99,7 @@ const HomeScreen = ({ navigation }) => {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="bag-outline" size={60} color="#CCC" />
-            <Text style={styles.emptyText}>No handbags found</Text>
+            <Text style={styles.emptyText}>Không tìm thấy sản phẩm</Text>
           </View>
         }
         refreshControl={

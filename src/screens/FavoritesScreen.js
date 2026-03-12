@@ -31,10 +31,10 @@ const FavoritesScreen = ({ navigation }) => {
   );
 
   const handleDelete = (id, name) => {
-    Alert.alert('Remove Favorite', `Remove "${name}" from favorites?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('Xóa Khỏi Yêu Thích', `Xóa "${name}" khỏi danh sách yêu thích?`, [
+      { text: 'Hủy', style: 'cancel' },
       {
-        text: 'Remove',
+        text: 'Xóa',
         style: 'destructive',
         onPress: async () => {
           const updated = await removeFavorite(id);
@@ -46,10 +46,10 @@ const FavoritesScreen = ({ navigation }) => {
 
   const handleDeleteAll = () => {
     if (favorites.length === 0) return;
-    Alert.alert('Remove All', 'Remove all handbags from favorites?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('Xóa Tất Cả', 'Xóa tất cả túi xách khỏi danh sách yêu thích?', [
+      { text: 'Hủy', style: 'cancel' },
       {
-        text: 'Remove All',
+        text: 'Xóa Tất Cả',
         style: 'destructive',
         onPress: async () => {
           const updated = await removeAllFavorites();
@@ -89,15 +89,15 @@ const FavoritesScreen = ({ navigation }) => {
               color={item.gender ? '#1565C0' : '#E91E63'}
             />
             <Text style={[styles.genderText, { color: item.gender ? '#1565C0' : '#E91E63' }]}>
-              {item.gender ? 'Male' : 'Female'}
+              {item.gender ? 'Nam' : 'Nữ'}
             </Text>
           </View>
           {feedbacks.length > 0 && (
             <StarRating rating={avgRating} size={12} />
           )}
           <View style={styles.priceRow}>
-            <Text style={styles.price}>${discountedPrice.toFixed(2)}</Text>
-            <Text style={styles.originalPrice}>${item.cost.toFixed(2)}</Text>
+            <Text style={styles.price}>{(discountedPrice).toLocaleString('vi-VN')}₫</Text>
+            <Text style={styles.originalPrice}>{item.cost.toLocaleString('vi-VN')}₫</Text>
           </View>
         </View>
         <Pressable
@@ -118,7 +118,7 @@ const FavoritesScreen = ({ navigation }) => {
         <Ionicons name="search-outline" size={18} color="#888" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search favorites..."
+          placeholder="Tìm kiếm yêu thích..."
           placeholderTextColor="#AAA"
           value={searchText}
           onChangeText={setSearchText}
@@ -133,10 +133,10 @@ const FavoritesScreen = ({ navigation }) => {
       {/* Header with count and delete all */}
       {favorites.length > 0 && (
         <View style={styles.header}>
-          <Text style={styles.count}>{filtered.length} item{filtered.length !== 1 ? 's' : ''}</Text>
+          <Text style={styles.count}>{filtered.length} sản phẩm</Text>
           <Pressable style={styles.deleteAllBtn} onPress={handleDeleteAll}>
             <Ionicons name="trash" size={14} color="#FFF" />
-            <Text style={styles.deleteAllText}>Remove All</Text>
+            <Text style={styles.deleteAllText}>Xóa Tất Cả</Text>
           </Pressable>
         </View>
       )}
@@ -148,9 +148,9 @@ const FavoritesScreen = ({ navigation }) => {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="heart-outline" size={70} color="#DDD" />
-            <Text style={styles.emptyTitle}>No favorites yet</Text>
+            <Text style={styles.emptyTitle}>Chưa có yêu thích nào</Text>
             <Text style={styles.emptySubtitle}>
-              {searchText ? 'No results match your search' : 'Start adding handbags you love!'}
+              {searchText ? 'Không tìm thấy kết quả phù hợp' : 'Hãy thêm những chiếc túi bạn yêu thích!'}
             </Text>
           </View>
         }

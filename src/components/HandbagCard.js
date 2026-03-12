@@ -19,7 +19,7 @@ const HandbagCard = ({ item, onPress, onToggleFavorite, isFav }) => {
         <Image source={{ uri: item.uri }} style={styles.image} resizeMode="cover" />
         {/* Discount badge */}
         <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>{Math.round(item.percentOff * 100)}% OFF</Text>
+          <Text style={styles.discountText}>-{Math.round(item.percentOff * 100)}%</Text>
         </View>
         {/* Gender badge */}
         <View style={[styles.genderBadge, item.gender ? styles.genderMale : styles.genderFemale]}>
@@ -54,8 +54,8 @@ const HandbagCard = ({ item, onPress, onToggleFavorite, isFav }) => {
         )}
 
         <View style={styles.priceRow}>
-          <Text style={styles.price}>${discountedPrice.toFixed(2)}</Text>
-          <Text style={styles.originalPrice}>${item.cost.toFixed(2)}</Text>
+          <Text style={styles.price}>{Math.round(discountedPrice).toLocaleString('vi-VN')}₫</Text>
+          <Text style={styles.originalPrice}>{item.cost.toLocaleString('vi-VN')}₫</Text>
         </View>
 
         {/* Colors */}
