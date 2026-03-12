@@ -1,9 +1,5 @@
 import { MOCKAPI_URL } from '../constants/config';
 
-/**
- * Đọc dữ liệu handbag trực tiếp từ MockAPI.
- * Fields: handbagName, brand, uri, gender, category, percentOff, cost, color, description
- */
 const mapToHandbag = (item) => ({
   id: String(item.id),
   handbagName: item.handbagName || 'Không có tên',
@@ -22,6 +18,8 @@ const mapToHandbag = (item) => ({
     }
   })(),
   description: item.description || '',
+  address: item.address || '',
+  feedbacks: Array.isArray(item.feedbacks) ? item.feedbacks : [],
 });
 
 export const fetchHandbags = async () => {
@@ -29,6 +27,16 @@ export const fetchHandbags = async () => {
   if (!response.ok) throw new Error(`Lỗi mạng: ${response.status}`);
   const data = await response.json();
   const mapped = data.map(mapToHandbag);
-  // Sắp xếp theo giá giảm dần
   return mapped.sort((a, b) => b.cost - a.cost);
+};
+
+export const addFeedbackToHandbag = async (handbagId, newFeedback, currentFeedbacks) => {
+  const updated = [newFeedback, ...currentFeedbacks];
+  const response = await fetch(`${MOCKAPI_URL}/${handbagId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ feedbacks: updated }),
+  });
+  if (!response.ok) throw new Error(`Lỗi cập nhật feedback: ${response.status}`);
+  return updated;
 };

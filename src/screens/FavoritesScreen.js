@@ -12,16 +12,17 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import StarRating from '../components/StarRating';
-import { MOCK_FEEDBACKS } from '../constants/data';
 import { getFavorites, removeFavorite, removeAllFavorites } from '../services/storage';
 
 const FavoritesScreen = ({ navigation }) => {
   const [favorites, setFavorites] = useState([]);
   const [searchText, setSearchText] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const loadFavorites = async () => {
     const favs = await getFavorites();
     setFavorites(favs);
+    setSelectedIds(new Set());
   };
 
   useFocusEffect(
@@ -30,18 +31,35 @@ const FavoritesScreen = ({ navigation }) => {
     }, [])
   );
 
-  const handleDelete = (id, name) => {
-    Alert.alert('Xóa Khỏi Yêu Thích', `Xóa "${name}" khỏi danh sách yêu thích?`, [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: async () => {
-          const updated = await removeFavorite(id);
-          setFavorites(updated);
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    Alert.alert(
+      'Xóa Đã Chọn',
+      `Xóa ${selectedIds.size} sản phẩm đã chọn khỏi danh sách yêu thích?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            let current = await getFavorites();
+            for (const id of selectedIds) {
+              current = await removeFavorite(id);
+            }
+            setFavorites(current);
+            setSelectedIds(new Set());
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleDeleteAll = () => {
@@ -54,6 +72,7 @@ const FavoritesScreen = ({ navigation }) => {
         onPress: async () => {
           const updated = await removeAllFavorites();
           setFavorites(updated);
+          setSelectedIds(new Set());
         },
       },
     ]);
@@ -65,19 +84,31 @@ const FavoritesScreen = ({ navigation }) => {
   );
 
   const renderItem = ({ item }) => {
-    const feedbacks = MOCK_FEEDBACKS[item.id] || [];
+    const itemFeedbacks = Array.isArray(item.feedbacks) ? item.feedbacks : [];
     const avgRating =
-      feedbacks.length > 0
-        ? feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length
+      itemFeedbacks.length > 0
+        ? itemFeedbacks.reduce((sum, f) => sum + f.rating, 0) / itemFeedbacks.length
         : 0;
     const discountedPrice = item.cost * (1 - item.percentOff);
+    const isSelected = selectedIds.has(item.id);
 
     return (
       <Pressable
-        style={styles.card}
+        style={[styles.card, isSelected && styles.cardSelected]}
         onPress={() => navigation.navigate('Detail', { handbag: item })}
         android_ripple={{ color: '#EEE' }}
       >
+        {/* Checkbox */}
+        <Pressable
+          style={styles.checkboxArea}
+          onPress={() => toggleSelect(item.id)}
+          hitSlop={8}
+        >
+          <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+            {isSelected && <Ionicons name="checkmark" size={14} color="#FFF" />}
+          </View>
+        </Pressable>
+
         <Image source={{ uri: item.uri }} style={styles.image} resizeMode="cover" />
         <View style={styles.info}>
           <Text style={styles.brand}>{item.brand}</Text>
@@ -92,7 +123,7 @@ const FavoritesScreen = ({ navigation }) => {
               {item.gender ? 'Nam' : 'Nữ'}
             </Text>
           </View>
-          {feedbacks.length > 0 && (
+          {itemFeedbacks.length > 0 && (
             <StarRating rating={avgRating} size={12} />
           )}
           <View style={styles.priceRow}>
@@ -100,13 +131,6 @@ const FavoritesScreen = ({ navigation }) => {
             <Text style={styles.originalPrice}>{item.cost.toLocaleString('vi-VN')}₫</Text>
           </View>
         </View>
-        <Pressable
-          style={styles.deleteBtn}
-          onPress={() => handleDelete(item.id, item.handbagName)}
-          hitSlop={8}
-        >
-          <Ionicons name="trash-outline" size={20} color="#E53935" />
-        </Pressable>
       </Pressable>
     );
   };
@@ -130,14 +154,22 @@ const FavoritesScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/* Header with count and delete all */}
+      {/* Header with count and action buttons */}
       {favorites.length > 0 && (
         <View style={styles.header}>
           <Text style={styles.count}>{filtered.length} sản phẩm</Text>
-          <Pressable style={styles.deleteAllBtn} onPress={handleDeleteAll}>
-            <Ionicons name="trash" size={14} color="#FFF" />
-            <Text style={styles.deleteAllText}>Xóa Tất Cả</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            {selectedIds.size > 0 && (
+              <Pressable style={styles.deleteSelectedBtn} onPress={handleDeleteSelected}>
+                <Ionicons name="trash-outline" size={14} color="#FFF" />
+                <Text style={styles.deleteSelectedText}>Xóa ({selectedIds.size})</Text>
+              </Pressable>
+            )}
+            <Pressable style={styles.deleteAllBtn} onPress={handleDeleteAll}>
+              <Ionicons name="trash" size={14} color="#FFF" />
+              <Text style={styles.deleteAllText}>Xóa Tất Cả</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -200,6 +232,24 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: '500',
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  deleteSelectedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#8B4513',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  deleteSelectedText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   deleteAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -244,6 +294,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 12,
     flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
@@ -251,6 +302,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 3,
     overflow: 'hidden',
+  },
+  cardSelected: {
+    borderWidth: 2,
+    borderColor: '#8B4513',
+  },
+  checkboxArea: {
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#CCC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+  },
+  checkboxChecked: {
+    backgroundColor: '#8B4513',
+    borderColor: '#8B4513',
   },
   image: {
     width: 100,
@@ -297,11 +372,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#999',
     textDecorationLine: 'line-through',
-  },
-  deleteBtn: {
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

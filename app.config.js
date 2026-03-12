@@ -24,12 +24,14 @@ module.exports = {
         backgroundImage: './assets/android-icon-background.png',
         monochromeImage: './assets/android-icon-monochrome.png',
       },
-      config: {
-        googleMaps: {
-          // Đọc từ .env: EXPO_PUBLIC_GOOGLE_MAPS_KEY
-          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || '',
-        },
-      },
+      ...(process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY &&
+        process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY !== 'YOUR_GOOGLE_MAPS_KEY_HERE' && {
+          config: {
+            googleMaps: {
+              apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY,
+            },
+          },
+        }),
     },
     web: {
       favicon: './assets/favicon.png',

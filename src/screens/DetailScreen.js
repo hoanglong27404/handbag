@@ -15,9 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import StarRating from '../components/StarRating';
 import RatingBar from '../components/RatingBar';
-import { MOCK_FEEDBACKS } from '../constants/data';
 import { getFavorites, addFavorite, removeFavorite } from '../services/storage';
-import { getUserComments, saveUserComment } from '../services/commentStorage';
+import { addFeedbackToHandbag } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -25,8 +24,8 @@ const DetailScreen = ({ route, navigation }) => {
   const { handbag } = route.params;
   const [isFav, setIsFav] = useState(false);
 
-  // User comments
-  const [userComments, setUserComments] = useState([]);
+  // Feedbacks từ API (bao gồm mẫu + user đã submit)
+  const [feedbacks, setFeedbacks] = useState(handbag.feedbacks || []);
   // Comment form
   const [showForm, setShowForm] = useState(false);
   const [newRating, setNewRating] = useState(0);
@@ -34,17 +33,14 @@ const DetailScreen = ({ route, navigation }) => {
   const [newImage, setNewImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const mockFeedbacks = MOCK_FEEDBACKS[handbag.id] || [];
-  const allFeedbacks = [...mockFeedbacks, ...userComments];
-
   const avgRating =
-    allFeedbacks.length > 0
-      ? allFeedbacks.reduce((sum, f) => sum + f.rating, 0) / allFeedbacks.length
+    feedbacks.length > 0
+      ? feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length
       : 0;
 
   const ratingGroups = [5, 4, 3, 2, 1].map((star) => ({
     star,
-    count: allFeedbacks.filter((f) => f.rating === star).length,
+    count: feedbacks.filter((f) => f.rating === star).length,
   }));
 
   const discountedPrice = handbag.cost * (1 - handbag.percentOff);
@@ -53,8 +49,6 @@ const DetailScreen = ({ route, navigation }) => {
     const init = async () => {
       const favs = await getFavorites();
       setIsFav(favs.some((f) => f.id === handbag.id));
-      const comments = await getUserComments(handbag.id);
-      setUserComments(comments);
     };
     init();
   }, []);
@@ -105,23 +99,28 @@ const DetailScreen = ({ route, navigation }) => {
   const handleSubmitComment = async () => {
     if (!newRating || !newText.trim()) return;
     setSubmitting(true);
-    const comment = {
-      id: `user_${Date.now()}`,
-      user: 'Bạn',
-      rating: newRating,
-      comment: newText.trim(),
-      image: newImage,
-      date: new Date().toISOString().split('T')[0],
-      isUserComment: true,
-    };
-    const updated = await saveUserComment(handbag.id, comment);
-    setUserComments(updated);
-    setNewRating(0);
-    setNewText('');
-    setNewImage(null);
-    setShowForm(false);
-    setSubmitting(false);
-    Alert.alert('Cảm ơn bạn!', 'Đánh giá của bạn đã được gửi thành công.');
+    try {
+      const comment = {
+        id: `user_${Date.now()}`,
+        user: 'Bạn',
+        rating: newRating,
+        comment: newText.trim(),
+        image: newImage,
+        date: new Date().toISOString().split('T')[0],
+        isUserComment: true,
+      };
+      const updated = await addFeedbackToHandbag(handbag.id, comment, feedbacks);
+      setFeedbacks(updated);
+      setNewRating(0);
+      setNewText('');
+      setNewImage(null);
+      setShowForm(false);
+      Alert.alert('Cảm ơn bạn!', 'Đánh giá của bạn đã được gửi thành công.');
+    } catch {
+      Alert.alert('Lỗi', 'Không thể gửi đánh giá. Vui lòng thử lại.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -168,6 +167,15 @@ const DetailScreen = ({ route, navigation }) => {
               ))}
             </View>
           </View>
+          {handbag.address ? (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Địa Chỉ</Text>
+                <Text style={[styles.detailValue, styles.addressValue]}>{handbag.address}</Text>
+              </View>
+            </>
+          ) : null}
           <View style={styles.divider} />
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Giới Tính</Text>
@@ -213,7 +221,7 @@ const DetailScreen = ({ route, navigation }) => {
         <View style={styles.ratingsCard}>
           <Text style={styles.sectionTitle}>Đánh Giá & Nhận Xét</Text>
 
-          {allFeedbacks.length === 0 ? (
+          {feedbacks.length === 0 ? (
             <Text style={styles.noReviews}>Chưa có đánh giá. Hãy là người đầu tiên!</Text>
           ) : (
             <>
@@ -222,20 +230,20 @@ const DetailScreen = ({ route, navigation }) => {
                 <Text style={styles.avgNumber}>{avgRating.toFixed(1)}</Text>
                 <View style={styles.avgDetails}>
                   <StarRating rating={avgRating} size={20} />
-                  <Text style={styles.totalReviews}>{allFeedbacks.length} đánh giá</Text>
+                  <Text style={styles.totalReviews}>{feedbacks.length} đánh giá</Text>
                 </View>
               </View>
 
               {/* Rating Breakdown */}
               <View style={styles.breakdown}>
                 {ratingGroups.map(({ star, count }) => (
-                  <RatingBar key={star} star={star} count={count} total={allFeedbacks.length} />
+                  <RatingBar key={star} star={star} count={count} total={feedbacks.length} />
                 ))}
               </View>
 
               {/* Comments */}
               <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Bình Luận</Text>
-              {allFeedbacks.map((fb) => (
+              {feedbacks.map((fb) => (
                 <View key={fb.id} style={styles.feedbackItem}>
                   <View style={styles.feedbackHeader}>
                     <View style={[styles.avatar, fb.isUserComment && styles.avatarUser]}>
@@ -448,6 +456,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: { fontSize: 14, color: '#666', fontWeight: '500' },
   detailValue: { fontSize: 14, color: '#1A1A1A', fontWeight: '600' },
+  addressValue: { fontSize: 13, flex: 1, textAlign: 'right', flexShrink: 1, marginLeft: 12 },
   divider: { height: 1, backgroundColor: '#F0F0F0' },
   colorsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' },
   colorChip: {
